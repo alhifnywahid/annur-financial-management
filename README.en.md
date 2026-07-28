@@ -1,201 +1,193 @@
-# Annur Official
+<p align="center">
+  <img src="./assets/readme/hero.svg" alt="Annur Official — dormitory financial management built with TanStack Start, Neon Postgres, Drizzle, and Better Auth" width="100%" />
+</p>
 
-A web-based financial management system for dormitory environments, built with Next.js 14 and MongoDB. The application simplifies monthly payment management, income and expense recording, and tracking member debt status.
+<p align="center">
+  <img src="https://img.shields.io/badge/TanStack_Start-1E3932?style=flat-square&logo=react&logoColor=white" alt="TanStack Start" />
+  <img src="https://img.shields.io/badge/React_19-006241?style=flat-square&logo=react&logoColor=white" alt="React 19" />
+  <img src="https://img.shields.io/badge/Neon_Postgres-00754A?style=flat-square&logo=postgresql&logoColor=white" alt="Neon Postgres" />
+  <img src="https://img.shields.io/badge/Drizzle_ORM-1E3932?style=flat-square&logo=drizzle&logoColor=white" alt="Drizzle ORM" />
+  <img src="https://img.shields.io/badge/Better_Auth-00754A?style=flat-square" alt="Better Auth" />
+  <img src="https://img.shields.io/badge/Tailwind_v4-006241?style=flat-square&logo=tailwindcss&logoColor=white" alt="Tailwind CSS v4" />
+  <img src="https://img.shields.io/badge/License-MIT-cba258?style=flat-square" alt="MIT License" />
+</p>
 
-[Baca dalam Bahasa Indonesia](./README.md)
-
----
-
-## Table of Contents
-
-- [About the Project](#about-the-project)
-- [Key Features](#key-features)
-- [Tech Stack](#tech-stack)
-- [Project Structure](#project-structure)
-- [Prerequisites](#prerequisites)
-- [Installation and Usage](#installation-and-usage)
-- [Environment Configuration](#environment-configuration)
-- [Contributing](#contributing)
-- [License](#license)
+<p align="center">
+  <a href="./README.md">Bahasa Indonesia</a> &#183; <b>English</b>
+</p>
 
 ---
 
-## About the Project
+**Annur Official** is a web app for managing the finances of a dormitory or small community: recording each member's monthly dues, tracking cash in and out, and following payment and debt status, all in one place. Members can check their own bills, while treasurers manage everything through an admin panel.
 
-Annur Official is a full-stack web application designed to simplify financial management in a dormitory or community setting. The application provides two access levels: **Admin** for comprehensive data management, and **User** for independently viewing billing information and payment status.
+This release (**v2**) is a full migration from Next.js + MongoDB to **TanStack Start + Neon Postgres + Drizzle + Better Auth**, keeping the original look and flow intact.
 
-Authentication is handled via Google OAuth, ensuring access is restricted to authorized accounts only. All data is stored in MongoDB Atlas.
+## Features
 
----
+### For Members
+- Summary of bills due for the current month
+- History of cash income and expenses
+- Per-member payment and debt status, by month
+- Online payment guide via **QRIS**
+- Offline payment guide via **WhatsApp**
 
-## Key Features
+### For Admins
+- Manage income and expense records (add, edit, delete)
+- Manage monthly bills (required dues components)
+- Manage members, including **add, rename, and delete**
+- Recap and monitor payment data across all members
+- Admin access is gated by email (`ADMIN_EMAIL`) via Google OAuth
 
-### User Panel
-- View a summary of bills due for the current month
-- Monitor the history of additional income and expenses
-- View each member's debt status in real-time
-- Online payment guide via QRIS
-- Offline payment guide via WhatsApp
+## Architecture
 
-### Admin Panel
-- Add, edit, and delete monthly income records
-- Add, edit, and delete monthly expense records
-- Manage billing data (required monthly payments)
-- User/member data management
-- View payment data recaps
+<p align="center">
+  <img src="./assets/readme/architecture.svg" alt="Architecture diagram: React 19 browser calls TanStack Start (SSR and server functions), which reaches Neon Postgres through Drizzle ORM; Better Auth handles Google OAuth; legacy MongoDB data is moved once via the migrate-data.ts script" width="100%" />
+</p>
 
----
+The React 19 UI runs on **TanStack Start**, which provides both SSR and *server functions*, so there is no separate REST API layer. Data access goes through the type-safe **Drizzle ORM** to **Neon Postgres** (serverless). Authentication is handled by **Better Auth** with Google OAuth. Data from the legacy app (MongoDB) is moved once via the ETL script `scripts/migrate-data.ts`.
 
 ## Tech Stack
 
 | Category | Technology |
 |---|---|
-| Framework | Next.js 14 (App Router) |
-| Database | MongoDB + Mongoose |
-| Authentication | NextAuth.js v5 (Google OAuth) |
-| UI Components | Radix UI, shadcn/ui |
-| Styling | Tailwind CSS |
+| Framework | TanStack Start (React 19), TanStack Router / Query / Form / Store / Table |
+| Database | Neon Postgres (serverless) |
+| ORM & Migrations | Drizzle ORM + drizzle-kit |
+| Authentication | Better Auth (Google OAuth) |
+| Styling | Tailwind CSS v4, Radix UI |
 | Icons | Lucide React, React Icons |
-| Date Handling | Moment.js, date-fns |
-| Progress Bar | next-nprogress-bar |
-| Package Manager | Yarn |
-
----
+| Validation | Zod, `@t3-oss/env-core` |
+| Tooling | Vite, Biome (lint & format), Vitest |
+| Language | TypeScript |
 
 ## Project Structure
 
 ```
-annur-official/
-├── public/
-│   └── qris.png                  # QRIS image for payment
+annur-financial-management/
+├── assets/readme/            # README visual assets (hero, architecture)
+├── db/
+│   └── init.sql              # Initial SQL schema bootstrap
+├── public/                   # Static assets (logo, QRIS, favicon, manifest)
+├── scripts/
+│   ├── migrate-data.ts       # One-time ETL: MongoDB -> Neon Postgres
+│   └── verify-migration.ts   # Verify Postgres matches the Mongo source
 ├── src/
-│   ├── app/
-│   │   ├── (user)/               # Pages for general users
-│   │   │   ├── page.jsx          # Main page (income & expenses)
-│   │   │   ├── bayar/            # Billing & payment methods page
-│   │   │   ├── data/             # Data recap page
-│   │   │   └── hutang/           # Member debt list page
-│   │   ├── admin/                # Admin-only pages
-│   │   │   ├── page.jsx          # Admin dashboard
-│   │   │   ├── data-pembayaran/  # Manage payment data
-│   │   │   ├── data-user/        # Manage user data
-│   │   │   ├── tagihan/          # Manage monthly bills
-│   │   │   └── components-admin/ # Admin-specific components
-│   │   └── api/                  # API Routes
-│   │       ├── auth/             # Authentication endpoints
-│   │       ├── data-bulanan/     # Monthly financial data API
-│   │       ├── data-user/        # User data API
-│   │       ├── add-payment/      # Add payment API
-│   │       ├── action-add/       # Add data API
-│   │       ├── edit-action/      # Edit data API
-│   │       └── delete-action/    # Delete data API
-│   ├── components/               # Reusable UI components
-│   ├── lib/
-│   │   ├── config.js             # Global application configuration
-│   │   └── mongoose.js           # MongoDB database connection
-│   ├── models/                   # Mongoose Schemas
-│   │   ├── DataBulanan.js        # Monthly financial data schema
-│   │   ├── DataPemasukan.js      # Income data schema
-│   │   ├── DataPengeluaran.js    # Expense data schema
-│   │   └── DataUser.js           # User data schema
-│   └── utils/                    # Utility functions
-├── auth.js                       # NextAuth configuration
-├── middleware.js                 # Authentication middleware
-├── next.config.mjs               # Next.js configuration
-└── tailwind.config.js            # Tailwind CSS configuration
+│   ├── components/           # UI components (admin/, ui/, cards, header)
+│   ├── db/                   # Drizzle connection + schema (schema.ts)
+│   ├── integrations/         # TanStack setup (Query, devtools)
+│   ├── lib/                  # server functions, data access, utils, config
+│   ├── routes/               # File-based routes (_user/, admin/)
+│   ├── env.ts                # Environment variable validation
+│   ├── router.tsx            # Router configuration
+│   └── styles.css            # Global styles (Tailwind theme)
+├── drizzle.config.ts         # Drizzle Kit configuration
+├── vite.config.ts            # Vite configuration
+└── biome.json                # Biome configuration
 ```
-
----
 
 ## Prerequisites
 
-Make sure your system has the following installed:
-
-- **Node.js** version 18 or newer
-- **Yarn** as the package manager
-- **MongoDB Atlas** or a local MongoDB instance
-- A **Google Cloud** account for OAuth configuration
-
----
+- **Node.js** version 20 or newer
+- A **Neon Postgres** database (or another Postgres instance)
+- A **Google Cloud** account for OAuth credentials
 
 ## Installation and Usage
 
-**1. Clone this repository**
+**1. Clone the repository**
 
 ```bash
-git clone https://github.com/username/annur-official.git
-cd annur-official
+git clone https://github.com/alhifnywahid/annur-financial-management.git
+cd annur-financial-management
 ```
 
 **2. Install dependencies**
 
 ```bash
-yarn install
+npm install
 ```
 
-**3. Create a `.env.local` file** and fill it with the required environment variables (see the [Environment Configuration](#environment-configuration) section).
+**3. Set up the environment**
 
-**4. Run the development server**
+Copy `.env.example` to `.env.local`, then fill in the values (see [Environment Configuration](#environment-configuration)).
 
 ```bash
-yarn dev
+cp .env.example .env.local
 ```
 
-The application will run at `http://localhost:3000`.
-
-**5. Build for production**
+**4. Set up the database schema**
 
 ```bash
-yarn build
-yarn start
+npm run db:push
 ```
 
----
+**5. Run the development server**
+
+```bash
+npm run dev
+```
+
+The app runs at `http://localhost:3000`.
+
+**6. Build for production**
+
+```bash
+npm run build
+npm run preview
+```
 
 ## Environment Configuration
 
-Create a `.env.local` file in the project root and fill in the following variables:
+Create a `.env.local` file in the project root with the following variables:
 
 ```env
-# Public application URL (use http://localhost:3000 for development)
-NEXT_PUBLIC_BASE_URL=http://localhost:3000/api
+# Database (Neon Postgres)
+DATABASE_URL=postgresql://user:password@host/db?sslmode=require
 
-# MongoDB
-MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/database-name
+# Better Auth
+BETTER_AUTH_URL=http://localhost:3000
+# Generate with: npx -y @better-auth/cli secret
+BETTER_AUTH_SECRET=
 
-# Google OAuth (from Google Cloud Console)
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+# Google OAuth (Google Cloud Console)
+# Authorized redirect URI: http://localhost:3000/api/auth/callback/google
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
 
-# NextAuth
-NEXTAUTH_SECRET=your-random-secret-string
-NEXTAUTH_URL=http://localhost:3000
-
-# The email account allowed to access as admin
-EMAIL=admin@gmail.com
+# Email allowed to access the admin panel
+ADMIN_EMAIL=admin@gmail.com
 ```
 
-### How to obtain Google OAuth credentials:
+### Obtaining Google OAuth credentials
 1. Open [Google Cloud Console](https://console.cloud.google.com)
-2. Create a new project or select an existing one
-3. Enable **Google+ API** / **Google Identity**
+2. Create or select a project
+3. Enable **Google Identity**
 4. Create an **OAuth 2.0 Client ID** under Credentials
-5. Add `http://localhost:3000/api/auth/callback/google` to the list of **Authorized redirect URIs**
+5. Add `http://localhost:3000/api/auth/callback/google` to the **Authorized redirect URIs**
 
----
+## Data Migration (optional, one-time)
+
+If you are moving data from the legacy app (MongoDB), add `MONGO_URI` to `.env.local`, then run:
+
+```bash
+npm run migrate:data      # import MongoDB -> Neon Postgres
+npm run verify:migration  # confirm the result matches the source
+```
+
+Remove `MONGO_URI` when done. The `db:generate`, `db:migrate`, and `db:studio` commands are also available for managing the Drizzle schema.
+
+## Versions
+
+| Version | Stack | Reference |
+|---|---|---|
+| **v2** (current) | TanStack Start + Neon Postgres + Drizzle + Better Auth | branch `main` |
+| **v1** | Next.js 14 + MongoDB + NextAuth | tag [`v1-nextjs`](https://github.com/alhifnywahid/annur-financial-management/releases) |
+
+Both versions live in the same repository, so you can deploy from either tag.
 
 ## Contributing
 
-Contributions are very open and warmly welcomed. Here are the steps:
-
-1. Fork this repository
-2. Create a new branch (`git checkout -b feature/feature-name`)
-3. Commit your changes (`git commit -m 'feat: add new feature'`)
-4. Push to your branch (`git push origin feature/feature-name`)
-5. Open a Pull Request
-
----
+Contributions are welcome. Fork the repository, create a feature branch (`git checkout -b feature/feature-name`), commit your changes, then open a Pull Request.
 
 ## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](./LICENSE) file for more information.
+Released under the [MIT License](./LICENSE).

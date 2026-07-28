@@ -1,0 +1,65 @@
+<svg width="100%" viewBox="0 0 1200 360" fill="none" xmlns="http://www.w3.org/2000/svg" font-family="'Segoe UI', system-ui, -apple-system, Helvetica, Arial, sans-serif" role="img" aria-labelledby="at ad">
+  <title id="at">Arsitektur Annur Official</title>
+  <desc id="ad">Browser React 19 memanggil TanStack Start (SSR + server functions), yang mengakses Neon Postgres lewat Drizzle ORM. Better Auth menangani Google OAuth. Data lama dari MongoDB dipindahkan sekali lewat skrip migrate-data.ts.</desc>
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#57534e"/>
+    </marker>
+    <marker id="arrowGold" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#cba258"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="360" rx="28" fill="#f2f0eb"/>
+
+  <!-- Better Auth (cross-cutting, top) -->
+  <rect x="308" y="26" width="280" height="46" rx="14" fill="#1E3932"/>
+  <text x="448" y="55" text-anchor="middle" fill="#ffffff" font-size="19" font-weight="700">Better Auth &#183; Google OAuth</text>
+  <line x1="448" y1="72" x2="448" y2="106" stroke="#57534e" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- main runtime flow -->
+  <!-- Browser -->
+  <rect x="40" y="110" width="214" height="84" rx="14" fill="#ffffff" stroke="#dcd8d0"/>
+  <circle cx="66" cy="140" r="6" fill="#00754A"/>
+  <text x="82" y="147" fill="#1E3932" font-size="20" font-weight="700">Browser</text>
+  <text x="66" y="176" fill="#57534e" font-size="18" font-weight="400">React 19 UI</text>
+
+  <!-- TanStack Start -->
+  <rect x="314" y="110" width="258" height="84" rx="14" fill="#ffffff" stroke="#dcd8d0"/>
+  <circle cx="340" cy="140" r="6" fill="#00754A"/>
+  <text x="356" y="147" fill="#1E3932" font-size="20" font-weight="700">TanStack Start</text>
+  <text x="340" y="176" fill="#57534e" font-size="18" font-weight="400">SSR + Server Functions</text>
+
+  <!-- Drizzle -->
+  <rect x="632" y="110" width="180" height="84" rx="14" fill="#ffffff" stroke="#dcd8d0"/>
+  <circle cx="658" cy="140" r="6" fill="#2b5148"/>
+  <text x="674" y="147" fill="#1E3932" font-size="20" font-weight="700">Drizzle ORM</text>
+  <text x="658" y="176" fill="#57534e" font-size="18" font-weight="400">type-safe SQL</text>
+
+  <!-- Neon -->
+  <rect x="872" y="110" width="256" height="84" rx="14" fill="#ffffff" stroke="#dcd8d0"/>
+  <circle cx="898" cy="140" r="6" fill="#006241"/>
+  <text x="914" y="147" fill="#1E3932" font-size="20" font-weight="700">Neon Postgres</text>
+  <text x="898" y="176" fill="#57534e" font-size="18" font-weight="400">serverless database</text>
+
+  <!-- flow arrows -->
+  <line x1="258" y1="152" x2="308" y2="152" stroke="#57534e" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="576" y1="152" x2="626" y2="152" stroke="#57534e" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="816" y1="152" x2="866" y2="152" stroke="#57534e" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- migration lane (one-time) -->
+  <text x="40" y="248" fill="#57534e" font-size="18" font-weight="600">Migrasi data satu kali (v1 &#8594; v2)</text>
+
+  <rect x="314" y="258" width="200" height="74" rx="14" fill="#edebe9" stroke="#dcd8d0"/>
+  <circle cx="340" cy="288" r="6" fill="#8a857c"/>
+  <text x="356" y="295" fill="#57534e" font-size="20" font-weight="700">MongoDB</text>
+  <text x="340" y="320" fill="#8a857c" font-size="18" font-weight="400">data lama (v1)</text>
+
+  <rect x="560" y="258" width="256" height="74" rx="14" fill="#ffffff" stroke="#cba258" stroke-dasharray="5 4"/>
+  <text x="576" y="292" fill="#1E3932" font-size="19" font-weight="700">migrate-data.ts</text>
+  <text x="576" y="318" fill="#57534e" font-size="18" font-weight="400">ETL, dijalankan sekali</text>
+
+  <line x1="514" y1="295" x2="556" y2="295" stroke="#cba258" stroke-width="2" marker-end="url(#arrowGold)"/>
+  <polyline points="740,258 740,222 1000,222 1000,198" fill="none" stroke="#cba258" stroke-width="2" stroke-dasharray="5 4" marker-end="url(#arrowGold)"/>
+</svg>

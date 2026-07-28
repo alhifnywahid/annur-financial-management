@@ -1,0 +1,144 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import "tailwindcss";
+@plugin '@tailwindcss/typography';
+
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Starbucks-inspired design system (see DESIGN.md).
+ * Warm cream canvas, four-tier green brand system, white cards with
+ * whisper-soft layered shadows, full-pill buttons, tight -0.01em tracking.
+ * Light-mode only — the warm cream temperature is load-bearing.
+ */
+
+:root {
+  /* ---- Brand: four-tier green system ---- */
+  --sb-green: #006241; /* historic brand green — headings */
+  --accent-green: #00754a; /* luminous green — primary CTAs */
+  --house-green: #1e3932; /* deep near-black green — bands/footer */
+  --uplift-green: #2b5148; /* secondary mid-dark green — decorative */
+  --green-light: #d4e9e2; /* pale mint wash — valid tints */
+
+  /* ---- Accent: gold (ceremony only) ---- */
+  --gold: #cba258;
+  --gold-light: #dfc49d;
+  --gold-lightest: #faf6ee;
+
+  /* ---- Warm-neutral canvas system ---- */
+  --cream: #f2f0eb; /* primary page canvas */
+  --ceramic: #edebe9; /* zone separators / soft washes */
+  --neutral-cool: #f9f9f9; /* dropdowns / quiet containers */
+  --line: #d6dbde; /* input border / hairlines */
+
+  /* ---- Text ---- */
+  --text-black: rgba(0, 0, 0, 0.87);
+  --text-black-soft: rgba(0, 0, 0, 0.58);
+
+  /* ---- Semantic ---- */
+  --danger: #c82014;
+  --warning: #fbbc05;
+
+  /* ---- shadcn semantic tokens mapped onto the brand palette ---- */
+  --background: var(--cream);
+  --foreground: var(--text-black);
+  --card: #ffffff;
+  --card-foreground: var(--text-black);
+  --popover: var(--neutral-cool);
+  --popover-foreground: var(--text-black);
+  --primary: var(--accent-green);
+  --primary-foreground: #ffffff;
+  --secondary: var(--ceramic);
+  --secondary-foreground: var(--house-green);
+  --muted: var(--ceramic);
+  --muted-foreground: var(--text-black-soft);
+  --accent: var(--green-light);
+  --accent-foreground: var(--house-green);
+  --destructive: var(--danger);
+  --destructive-foreground: #ffffff;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--accent-green);
+  --radius: 0.75rem; /* 12px — card radius */
+}
+
+@theme inline {
+  --font-sans: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --tracking-tight-brand: -0.01em;
+
+  /* shadcn semantic colors */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* brand-specific utilities (bg-house, text-accent-green, etc.) */
+  --color-cream: var(--cream);
+  --color-ceramic: var(--ceramic);
+  --color-sb-green: var(--sb-green);
+  --color-accent-green: var(--accent-green);
+  --color-house: var(--house-green);
+  --color-uplift: var(--uplift-green);
+  --color-green-light: var(--green-light);
+  --color-gold: var(--gold);
+  --color-danger: var(--danger);
+  --color-text-soft: var(--text-black-soft);
+
+  /* radius scale */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+html,
+body,
+#app {
+  min-height: 100%;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    letter-spacing: var(--tracking-tight-brand);
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@layer components {
+  /* Whisper-soft dual-shadow content card (DESIGN §6). */
+  .card-soft {
+    box-shadow:
+      0px 0px 0.5px 0px rgba(0, 0, 0, 0.14),
+      0px 1px 1px 0px rgba(0, 0, 0, 0.24);
+  }
+
+  /* Triple-layer soft lift used on fixed nav surfaces (DESIGN §6). */
+  .nav-soft {
+    box-shadow:
+      0 1px 3px rgba(0, 0, 0, 0.1),
+      0 2px 2px rgba(0, 0, 0, 0.06),
+      0 0 2px rgba(0, 0, 0, 0.07);
+  }
+}
