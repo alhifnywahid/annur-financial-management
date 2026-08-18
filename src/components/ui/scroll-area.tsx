@@ -11,7 +11,11 @@ function ScrollArea({
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn("relative", className)}
+      // `overflow-hidden` is load-bearing, not cosmetic: it zeroes the flex
+      // automatic minimum size (CSS Flexbox 4.5) so the ScrollArea can shrink
+      // instead of growing to fit its content. Without it, a long table pushes
+      // sibling elements (e.g. the "Tambah Pengeluaran" button) off screen.
+      className={cn("relative overflow-hidden", className)}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
