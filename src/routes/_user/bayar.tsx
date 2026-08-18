@@ -13,7 +13,7 @@ export const Route = createFileRoute("/_user/bayar")({
 });
 
 const text = [
-	"Jika sudah melakukan pembayaran harap konfirmasi ke whastapp di atas!",
+	"Jika sudah melakukan pembayaran harap konfirmasi ke grup whatsapp di atas!",
 	"Waktu liburan/tidak ada di asrama tetap wajib melakukan pembayaran!",
 	"Pembayaran yang terlamat akan dikenakan dendan sebesar Rp. 10.000 perbulan.",
 ];
@@ -63,18 +63,18 @@ function BayarPage() {
 						alt="QRIS"
 					/>
 					<h1 className="text-xl font-semibold text-sb-green">
-						Untuk Pembayaran Offline
+						Konfirmasi Pembayaran
 					</h1>
 					<div className="flex gap-2 mb-4 p-2 items-center justify-center w-full">
-						<p>Hubungi No Berikut : </p>
+						<p>Kirim bukti bayar ke : </p>
 						<a
-							href={`https://wa.me/${web.no_wa}`}
+							href={web.link_grup_wa}
 							target="_blank"
 							rel="noreferrer"
 							className="text-base font-semibold flex gap-2 items-center justify-center rounded-full bg-accent-green text-white px-4 py-2 transition-all active:scale-95"
 						>
 							<FaWhatsapp size={20} />
-							<p>Whatsapp</p>
+							<p>Grup Whatsapp</p>
 						</a>
 					</div>
 
