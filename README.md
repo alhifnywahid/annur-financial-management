@@ -67,8 +67,6 @@ UI React 19 berjalan di atas **TanStack Start**, yang menyediakan SSR sekaligus 
 ```
 annur-financial-management/
 ├── assets/readme/            # Aset visual untuk README (hero, arsitektur)
-├── db/
-│   └── init.sql              # Inisialisasi skema SQL awal
 ├── public/                   # Aset statis (logo, QRIS, favicon, manifest)
 ├── scripts/
 │   ├── migrate-data.ts       # ETL satu kali: MongoDB -> Neon Postgres

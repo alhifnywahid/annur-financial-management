@@ -13,13 +13,13 @@ import { useRouter } from "@tanstack/react-router";
  * their own. We intentionally do not await here.
  */
 export function useInvalidateData() {
-  const queryClient = useQueryClient();
-  const router = useRouter();
+	const queryClient = useQueryClient();
+	const router = useRouter();
 
-  return () => {
-    void queryClient.invalidateQueries({ queryKey: ["data-bulanan"] });
-    void queryClient.invalidateQueries({ queryKey: ["data-user"] });
-    // Refresh route loaders too (non-blocking) so SSR-hydrated data stays fresh.
-    void router.invalidate();
-  };
+	return () => {
+		void queryClient.invalidateQueries({ queryKey: ["data-bulanan"] });
+		void queryClient.invalidateQueries({ queryKey: ["data-user"] });
+		// Refresh route loaders too (non-blocking) so SSR-hydrated data stays fresh.
+		void router.invalidate();
+	};
 }

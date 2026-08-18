@@ -1,18 +1,18 @@
-import { Outlet, createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 import AppShell from "#/components/AppShell";
 import { dataBulananQueryOptions } from "#/lib/queries";
 
 export const Route = createFileRoute("/_user")({
-  loader: ({ context }) =>
-    context.queryClient.ensureQueryData(dataBulananQueryOptions),
-  component: UserLayout,
+	loader: ({ context }) =>
+		context.queryClient.ensureQueryData(dataBulananQueryOptions),
+	component: UserLayout,
 });
 
 function UserLayout() {
-  return (
-    <AppShell>
-      <Outlet />
-    </AppShell>
-  );
+	return (
+		<AppShell>
+			<Outlet />
+		</AppShell>
+	);
 }

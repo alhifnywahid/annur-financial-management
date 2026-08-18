@@ -32,33 +32,33 @@ import { ScrollArea } from "./scroll-area.tsx";
  * correct geometry instead. Layout itself was verified in headless Chrome.
  */
 describe("ScrollArea", () => {
-  it("gives the root a non-visible overflow so it can shrink as a flex item", () => {
-    const { container } = render(<ScrollArea className="h-full w-full" />);
-    const root = container.querySelector('[data-slot="scroll-area"]');
+	it("gives the root a non-visible overflow so it can shrink as a flex item", () => {
+		const { container } = render(<ScrollArea className="h-full w-full" />);
+		const root = container.querySelector('[data-slot="scroll-area"]');
 
-    expect(root).not.toBeNull();
-    expect(root?.className).toContain("overflow-hidden");
-  });
+		expect(root).not.toBeNull();
+		expect(root?.className).toContain("overflow-hidden");
+	});
 
-  it("keeps caller-supplied classes on the root", () => {
-    const { container } = render(<ScrollArea className="h-full rounded-xl" />);
-    const root = container.querySelector('[data-slot="scroll-area"]');
+	it("keeps caller-supplied classes on the root", () => {
+		const { container } = render(<ScrollArea className="h-full rounded-xl" />);
+		const root = container.querySelector('[data-slot="scroll-area"]');
 
-    expect(root?.className).toContain("h-full");
-    expect(root?.className).toContain("rounded-xl");
-  });
+		expect(root?.className).toContain("h-full");
+		expect(root?.className).toContain("rounded-xl");
+	});
 
-  it("renders children inside the scrollable viewport", () => {
-    const { container, getByText } = render(
-      <ScrollArea>
-        <p>Beli gas elpiji</p>
-      </ScrollArea>,
-    );
+	it("renders children inside the scrollable viewport", () => {
+		const { container, getByText } = render(
+			<ScrollArea>
+				<p>Beli gas elpiji</p>
+			</ScrollArea>,
+		);
 
-    const viewport = container.querySelector(
-      '[data-slot="scroll-area-viewport"]',
-    );
-    expect(viewport).not.toBeNull();
-    expect(viewport?.contains(getByText("Beli gas elpiji"))).toBe(true);
-  });
+		const viewport = container.querySelector(
+			'[data-slot="scroll-area-viewport"]',
+		);
+		expect(viewport).not.toBeNull();
+		expect(viewport?.contains(getByText("Beli gas elpiji"))).toBe(true);
+	});
 });

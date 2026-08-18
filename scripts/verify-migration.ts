@@ -179,8 +179,13 @@ function diffArrays(label: string, a: string[], b: string[], out: string[]) {
 }
 
 async function main() {
-  const mongo = await mongoFingerprint(process.env.MONGO_URI!);
-  const pg = await pgFingerprint(process.env.DATABASE_URL!);
+  const MONGO_URI = process.env.MONGO_URI;
+  const DATABASE_URL = process.env.DATABASE_URL;
+  if (!MONGO_URI) throw new Error("MONGO_URI is not set in .env.local");
+  if (!DATABASE_URL) throw new Error("DATABASE_URL is not set in .env.local");
+
+  const mongo = await mongoFingerprint(MONGO_URI);
+  const pg = await pgFingerprint(DATABASE_URL);
 
   const scalars = [
     ["users count", mongo.users.length, pg.users.length],

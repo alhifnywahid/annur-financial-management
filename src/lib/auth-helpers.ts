@@ -1,14 +1,15 @@
 import { getRequest } from "@tanstack/react-start/server";
 
-import { auth } from "./auth";
+import { env } from "#/env";
+import { auth } from "./auth.ts";
 
 /**
  * Returns the current Better Auth session (or null) for the incoming request.
  * Safe to call inside server function handlers / route loaders.
  */
 export async function getSession() {
-  const request = getRequest();
-  return auth.api.getSession({ headers: request.headers });
+	const request = getRequest();
+	return auth.api.getSession({ headers: request.headers });
 }
 
 /**
@@ -22,13 +23,16 @@ export async function getSession() {
  * client bundle by the TanStack Start compiler.
  */
 export async function requireAdmin() {
-  const session = await getSession();
-  if (!session?.user) {
-    throw new Error("Tidak terautentikasi.");
-  }
-  const adminEmail = process.env.ADMIN_EMAIL;
-  if (adminEmail && session.user.email !== adminEmail) {
-    throw new Error("Akses ditolak.");
-  }
-  return session.user;
+	const session = await getSession();
+	if (!session?.user) {
+		throw new Error("Tidak terautentikasi.");
+	}
+	// Compared unconditionally, and against the validated `env` rather than
+	// `process.env`. The previous `if (adminEmail && ...)` shape meant that a
+	// missing ADMIN_EMAIL turned this gate off entirely, so ANY signed-in Google
+	// account could reach every mutating server function.
+	if (session.user.email !== env.ADMIN_EMAIL) {
+		throw new Error("Akses ditolak.");
+	}
+	return session.user;
 }

@@ -65,8 +65,6 @@ The React 19 UI runs on **TanStack Start**, which provides both SSR and *server 
 ```
 annur-financial-management/
 ├── assets/readme/            # README visual assets (hero, architecture)
-├── db/
-│   └── init.sql              # Initial SQL schema bootstrap
 ├── public/                   # Static assets (logo, QRIS, favicon, manifest)
 ├── scripts/
 │   ├── migrate-data.ts       # One-time ETL: MongoDB -> Neon Postgres
