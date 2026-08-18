@@ -44,16 +44,28 @@ describe("hitungHutang", () => {
 	});
 
 	/**
-	 * The bug this fix targets: paying exactly the bill while two months late
-	 * used to drop the member from this list, hiding Rp 20.000 of real debt.
+	 * Covering the bill clears the month even with denda rows attached. Requiring
+	 * bill+denda here is what blew the numbers up: denda accrues per month
+	 * elapsed, so paid-up members drifted back into debt as time passed.
 	 */
-	it("includes the penalty for someone who paid the bill but was late", () => {
+	it("excludes someone who covered the bill, even with penalty rows", () => {
 		const result = hitungHutang([
 			month("032026", [
 				{ nama: "Budi", total_bayar: 70_000, denda: ["012026", "022026"] },
 			]),
 		]);
-		expect(result).toEqual([{ nama: "Budi", nominal: 20_000 }]);
+		expect(result).toEqual([]);
+	});
+
+	/** But while still short, the denda rides along on top of the shortfall. */
+	it("adds the penalty on top of the shortfall for an underpayer", () => {
+		const result = hitungHutang([
+			month("032026", [
+				{ nama: "Budi", total_bayar: 50_000, denda: ["012026", "022026"] },
+			]),
+		]);
+		// 20.000 kurang + 20.000 denda
+		expect(result).toEqual([{ nama: "Budi", nominal: 40_000 }]);
 	});
 
 	it("adds up a member's debt across several months", () => {

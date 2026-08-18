@@ -1,66 +1,68 @@
 /**
- * Single source of truth for "how much does this member owe for this month".
+ * Single source of truth for "sudah lunas atau belum, dan kurang berapa".
  *
- * Before this module existed, three places each computed it differently:
+ * ATURANNYA — dan mengapa denda TIDAK ikut menentukan lunas:
  *
- *   - CardUser.tsx          lunas when total_bayar >= tagihan + denda
- *   - hitung-hutang.ts      skip   when total_bayar >= tagihan          (no denda)
- *   - admin/data-pembayaran unpaid when total_bayar <  tagihan          (no denda)
+ *     lunas  = total_bayar >= total tagihan bulan itu   (denda TIDAK dihitung)
+ *     kurang = lunas ? 0 : (tagihan - bayar) + denda
  *
- * The disagreement was not cosmetic: a member who paid exactly the bill but was
- * late still showed a red "-Rp 20.000" on their card, yet was absent from the
- * Hutang page AND from the admin payment panel — so the penalty could not be
- * seen in the totals nor collected through the UI. Worse, `updateDenda` treated
- * "paid the bare bill" as settled and wiped the penalty rows on the next page
- * load, quietly forgiving every late fee the app had promised to charge.
+ * Sekilas tiga tempat di app ini tampak memakai aturan berbeda (kartu anggota
+ * pakai `bayar >= tagihan + denda`, halaman Hutang dan panel admin pakai
+ * `bayar >= tagihan`). Itu terlihat seperti inkonsistensi, tapi bukan:
+ * `updateDenda()` di data-access.ts menegakkan sebuah INVARIAN —
  *
- * The rule below is the one the app's own UI text promises to members:
- * "Pembayaran yang terlambat akan dikenakan denda sebesar Rp. 10.000 perbulan."
+ *     ada baris denda  =>  total_bayar < total tagihan
  *
- *     owed  = total tagihan bulan itu + (jumlah bulan terlambat x 10.000)
- *     lunas = total_bayar >= owed
+ * karena setiap kali dihitung ulang, baris denda anggota yang sudah menutup
+ * tagihan dihapus. Di bawah invarian itu ketiga rumus menghasilkan jawaban
+ * yang sama, jadi tidak ada yang perlu "diseragamkan".
  *
- * IMPORTANT (why this does not chase its own tail): the number of late months is
- * derived from the CALENDAR (`monthDiff` between now and the month), never from
- * the stored `denda` rows. If "late" were derived from "underpaid" while
- * "underpaid" included the penalty, having a penalty would keep the penalty
- * alive forever and no member could ever settle. Keeping the count calendar-only
- * makes the fixpoint reachable: pay `owed` and the penalty rows clear for good.
+ * JANGAN ubah `isLunas` jadi `bayar >= tagihan + denda`. Saya pernah
+ * melakukannya dan itu merusak seluruh angka: denda dihitung per bulan yang
+ * sudah berlalu, jadi untuk bulan 24 bulan lalu `owed` menjadi
+ * 70.000 + 24x10.000 = 310.000. Anggota yang dulu membayar tagihannya dengan
+ * benar mendadak dianggap belum lunas, lalu ikut diberi denda retroaktif untuk
+ * tiap bulan yang berlalu. Hasilnya: baris denda melonjak dari 6 ke 1.441 dan
+ * semua anggota tercatat berhutang jutaan rupiah. Denda adalah sanksi selama
+ * seseorang MASIH menunggak; begitu tagihan ditutup, sanksinya berhenti.
+ *
+ * `kurang` tetap memasukkan denda, karena selama seseorang masih menunggak dia
+ * memang berhutang kekurangan tagihan DITAMBAH dendanya.
  */
 
-/** Denda per late month, in rupiah. */
+/** Denda per bulan keterlambatan, dalam rupiah. */
 export const DENDA_PER_BULAN = 10_000;
 
-/** Sum of a month's bills (Listrik + WIFI + anything the admin added). */
+/** Jumlah tagihan sebulan (Listrik + WIFI + apa pun yang admin tambahkan). */
 export function totalTagihan(
 	bills: ReadonlyArray<{ nominal: number }>,
 ): number {
 	return bills.reduce((sum, bill) => sum + bill.nominal, 0);
 }
 
-/** Rupiah owed in penalties for `count` late months. */
+/** Rupiah denda untuk `count` bulan keterlambatan. */
 export function totalDenda(count: number): number {
 	return count * DENDA_PER_BULAN;
 }
 
 export interface TagihanUser {
-	/** Sum of the month's bills. */
+	/** Jumlah tagihan bulan itu. */
 	tagihan: number;
-	/** Penalty total for the late months. */
+	/** Total denda untuk bulan-bulan keterlambatan. */
 	denda: number;
-	/** What the member must pay in total: `tagihan + denda`. */
+	/** Yang harus dibayar bila masih menunggak: `tagihan + denda`. */
 	owed: number;
-	/** Shortfall, floored at 0 so an overpayment never reads as negative debt. */
+	/** Kekurangan: 0 bila lunas, selain itu `owed - bayar`. */
 	kurang: number;
-	/** True once the member has paid at least `owed`. */
+	/** True begitu anggota menutup TAGIHAN-nya (denda tidak ikut menentukan). */
 	isLunas: boolean;
 }
 
 /**
- * Resolve one member's position for one month.
+ * Posisi satu anggota untuk satu bulan.
  *
- * `dendaCount` is the number of late months: the stored `denda` rows when
- * reading (they mirror the calendar), or `monthDiff` when recomputing them.
+ * `dendaCount` adalah jumlah bulan keterlambatan: baris `denda` tersimpan saat
+ * membaca, atau `monthDiff` saat menghitungnya ulang.
  */
 export function hitungTagihanUser(input: {
 	bills: ReadonlyArray<{ nominal: number }>;
@@ -70,12 +72,13 @@ export function hitungTagihanUser(input: {
 	const tagihan = totalTagihan(input.bills);
 	const denda = totalDenda(input.dendaCount);
 	const owed = tagihan + denda;
+	const isLunas = input.totalBayar >= tagihan;
 
 	return {
 		tagihan,
 		denda,
 		owed,
-		kurang: Math.max(0, owed - input.totalBayar),
-		isLunas: input.totalBayar >= owed,
+		kurang: isLunas ? 0 : Math.max(0, owed - input.totalBayar),
+		isLunas,
 	};
 }

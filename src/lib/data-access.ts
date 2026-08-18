@@ -100,25 +100,32 @@ function dendaKey(
 
 /**
  * Recomputes late-month penalties for every month before the current one.
- * A member who has not settled a past month accrues one `denda` row per month
- * elapsed since then, at Rp 10.000 each.
+ * A member who has not covered a past month's BILL accrues one `denda` row per
+ * month elapsed since then, at Rp 10.000 each.
  *
- * Two corrections over the original `update-denda.js`:
+ * This function is what makes the invariant in `tagihan.ts` true:
  *
- *  1. The old code compared `total_bayar != totalTagihan`, which penalised
- *     members who OVERPAID and — because it ignored denda — cleared the rows of
- *     anyone who paid the bare bill, quietly forgiving late fees the app had
- *     already shown them. Settlement now comes from the shared rule in
- *     `tagihan.ts`, so a late member must cover bill + penalty to be cleared.
+ *     ada baris denda  =>  total_bayar < total tagihan
  *
- *  2. It issued one DELETE + one INSERT inside its own transaction per user per
- *     month — roughly 180 round trips for a year of 15 members, on every single
- *     page load. We now diff the computed state against what is stored and
- *     write only the members whose penalty set actually changed, in one
- *     transaction. The steady state (nothing changed) costs zero writes.
+ * because a member who has covered the bill gets their rows cleared here. That
+ * invariant is why the read paths can test settlement against the bill alone.
  *
- * The penalty COUNT is derived from the calendar (`monthDiff`), never from the
- * stored rows, so it cannot feed back on itself — see `tagihan.ts`.
+ * Settlement therefore compares against the BILL, never bill+denda. Comparing
+ * against bill+denda makes the penalty feed itself: `denda` grows with every
+ * month that passes, so an old month's "owed" drifts upward forever, members who
+ * had genuinely paid fall back into arrears, and they get penalised again
+ * retroactively. Measured on real data, that turned 6 denda rows into 1.441 and
+ * put every member millions in debt.
+ *
+ * One correction over the original `update-denda.js`: it compared
+ * `total_bayar != totalTagihan`, which penalised members who OVERPAID (paid
+ * 100k for a 70k bill). `<` treats anyone who paid at least the bill as settled.
+ *
+ * Performance: the original issued one DELETE + one INSERT inside its own
+ * transaction per user per month — roughly 180 round trips for a year of 15
+ * members, on every single page load. We now diff the computed state against
+ * what is stored and write only the members whose penalty set actually changed,
+ * in one transaction. The steady state (nothing changed) costs zero writes.
  */
 async function updateDenda(): Promise<void> {
 	const now = nowMonth();
@@ -149,9 +156,11 @@ async function updateDenda(): Promise<void> {
 		);
 
 		for (const u of month.user) {
+			// `dendaCount: 0` on purpose: settlement is judged on the bill alone —
+			// see the note above on why bill+denda feeds itself.
 			const { isLunas } = hitungTagihanUser({
 				bills: month.pembayaran,
-				dendaCount: difference,
+				dendaCount: 0,
 				totalBayar: u.totalBayar,
 			});
 

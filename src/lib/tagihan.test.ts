@@ -50,30 +50,43 @@ describe("hitungTagihanUser", () => {
 	});
 
 	/**
-	 * The regression this module exists for. Paying exactly the bill while late
-	 * used to count as settled in hitung-hutang.ts and in the admin panel, so the
-	 * Rp 10.000 penalty was invisible in the totals and uncollectable in the UI.
+	 * The rule that matters most, and the one I got wrong once: covering the BILL
+	 * settles the month, even while denda rows exist. Requiring bill+denda makes
+	 * the penalty feed itself — denda grows every month that passes, so members
+	 * who had paid fall back into arrears and get penalised again retroactively.
+	 * On real data that produced 1.441 denda rows and millions in phantom debt.
 	 */
-	it("still owes the penalty after paying exactly the bill while late", () => {
+	it("is lunas once the bill is covered, even with penalty rows present", () => {
 		const r = hitungTagihanUser({
 			bills: BILLS,
 			dendaCount: 2,
 			totalBayar: 70_000,
 		});
-		expect(r.denda).toBe(20_000);
-		expect(r.owed).toBe(90_000);
-		expect(r.kurang).toBe(20_000);
-		expect(r.isLunas).toBe(false);
+		expect(r.isLunas).toBe(true);
+		expect(r.kurang).toBe(0);
 	});
 
-	it("is lunas once bill and penalty are both covered", () => {
+	/** While genuinely short, the debt is shortfall PLUS denda. */
+	it("adds the penalty to the shortfall for an underpayer", () => {
 		const r = hitungTagihanUser({
 			bills: BILLS,
 			dendaCount: 2,
-			totalBayar: 90_000,
+			totalBayar: 50_000,
 		});
-		expect(r.kurang).toBe(0);
-		expect(r.isLunas).toBe(true);
+		expect(r.denda).toBe(20_000);
+		expect(r.owed).toBe(90_000);
+		expect(r.kurang).toBe(40_000); // 20k short + 20k denda
+		expect(r.isLunas).toBe(false);
+	});
+
+	it("owes bill plus penalty when nothing has been paid", () => {
+		const r = hitungTagihanUser({
+			bills: BILLS,
+			dendaCount: 3,
+			totalBayar: 0,
+		});
+		expect(r.kurang).toBe(100_000);
+		expect(r.isLunas).toBe(false);
 	});
 
 	/** Overpaying must never render as negative debt (the old `!==` bug). */

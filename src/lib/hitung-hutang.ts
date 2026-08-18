@@ -4,14 +4,11 @@ import type { DataBulananDTO, HutangDTO } from "./types.ts";
 /**
  * Total outstanding debt per member, summed across every month.
  *
- * Ported from the original `src/utils/hitung-hutang.js`, with one deliberate
- * correction: the old version skipped a member as soon as `total_bayar >=
- * totalTagihan`, ignoring denda entirely. A member who paid exactly the bill
- * while late therefore vanished from this list even though their card showed a
- * shortfall — the Rp 10.000/month penalty was never actually collected. The
- * settled test now comes from the shared rule in `tagihan.ts`, so this page,
- * the member cards and the admin panel all agree. See that module for why the
- * late-month count is calendar-derived and cannot feed back on itself.
+ * Numerically identical to the original `src/utils/hitung-hutang.js`: a member
+ * who has covered the month's bill is skipped, otherwise they owe the shortfall
+ * plus their denda. The arithmetic now lives in `tagihan.ts` (see that module
+ * for why settlement is judged on the bill alone), and the per-member running
+ * total uses a Map instead of a linear `data.find()` per row.
  */
 export function hitungHutang(dataBulanan: DataBulananDTO[]): HutangDTO[] {
 	const totals = new Map<string, number>();
