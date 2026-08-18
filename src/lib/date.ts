@@ -89,8 +89,12 @@ export function formatDDMMYYYYShort(value: string): string {
 	return `${dd}/${mm}/${yy}`;
 }
 
+/** A `Date` -> "29 Juli 2026" (tanggal nama-bulan tahun). */
+export function formatTanggalPanjang(date: Date): string {
+	return `${date.getDate()} ${FULL_MONTH_ID[date.getMonth()]} ${date.getFullYear()}`;
+}
+
 /** "today" as "29 Juli 2026" (tanggal nama-bulan tahun) for the header. */
 export function todayLong(): string {
-	const d = new Date();
-	return `${d.getDate()} ${FULL_MONTH_ID[d.getMonth()]} ${d.getFullYear()}`;
+	return formatTanggalPanjang(new Date());
 }

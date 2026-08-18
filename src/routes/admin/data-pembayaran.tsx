@@ -1,6 +1,7 @@
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Fragment } from "react";
+import ButtonCopyInfo from "#/components/admin/ButtonCopyInfo";
 import FormTambahPembayaran from "#/components/admin/FormTambahPembayaran";
 import {
 	Accordion,
@@ -26,7 +27,10 @@ function DataPembayaranPage() {
 	const months = getUnpaidMonths(data.dataBulanan);
 
 	return (
-		<div className="flex flex-col gap-2 h-full my-3">
+		// `overflow-hidden` di wrapper + di ScrollArea adalah yang membuat tombol
+		// Copy Info tetap terlihat: tanpa itu daftar bulan yang panjang mendorong
+		// tombol keluar layar (CSS Flexbox 4.5, lihat catatan di scroll-area.tsx).
+		<div className="flex flex-col gap-2 h-full my-3 overflow-hidden">
 			<ScrollArea className="h-full w-full rounded-md">
 				<div className="p-4">
 					<Accordion type="single" collapsible className="w-full">
@@ -55,6 +59,7 @@ function DataPembayaranPage() {
 					</Accordion>
 				</div>
 			</ScrollArea>
+			<ButtonCopyInfo months={months} />
 		</div>
 	);
 }
@@ -63,11 +68,11 @@ function DataPembayaranPage() {
  * Months that still have at least one member owing money, each unpaid member
  * annotated with the remaining shortfall.
  *
- * Outstanding-ness comes from the shared rule in `src/lib/tagihan.ts` (bill +
- * denda vs. paid). The previous version compared `total_bayar < totalPayment`,
- * ignoring denda entirely: a late member who had paid exactly the bill dropped
- * off this page, so the admin had no way to record the penalty payment even
- * though every other screen still showed them as owing it.
+ * Outstanding-ness comes from the shared rule in `src/lib/tagihan.ts`, which
+ * judges settlement on the month's bill — the same test this page used before,
+ * now shared with the member cards and the Hutang page instead of re-derived
+ * here. `kurang` includes denda, so the amount offered to the admin covers the
+ * shortfall plus the penalty.
  */
 function getUnpaidMonths(data: DataBulananDTO[]) {
 	return data
