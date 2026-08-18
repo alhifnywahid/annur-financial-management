@@ -92,7 +92,7 @@ export default function ActionUser({ data }: { data: ActionUserData }) {
 			</DropdownMenuContent>
 
 			<Dialog open={editOpen} onOpenChange={setEditOpen}>
-				<DialogContent className="sm:max-w-[425px]">
+				<DialogContent className="sm:max-w-106.25">
 					<form onSubmit={handleEdit}>
 						<DialogHeader>
 							<DialogTitle>Edit User</DialogTitle>
@@ -120,7 +120,7 @@ export default function ActionUser({ data }: { data: ActionUserData }) {
 			</Dialog>
 
 			<Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-				<DialogContent className="sm:max-w-[425px]">
+				<DialogContent className="sm:max-w-106.25">
 					<DialogHeader>
 						<DialogTitle>Yakin ingin menghapus user berikut :</DialogTitle>
 						<div className="flex items-center justify-center w-full gap-1 py-2">

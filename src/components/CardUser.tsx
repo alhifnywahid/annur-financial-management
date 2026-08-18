@@ -70,7 +70,7 @@ export default function CardUser({
 					)}
 				</span>
 			</button>
-			<DialogContent className="max-w-[400px] sm:max-w-[400px]">
+			<DialogContent className="max-w-100 sm:max-w-100">
 				<DialogHeader>
 					<DialogTitle>
 						{nama} - {date}

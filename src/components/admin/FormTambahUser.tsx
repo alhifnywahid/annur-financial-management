@@ -40,7 +40,7 @@ export default function FormTambahUser() {
 			<DialogTrigger asChild>
 				<Button variant="outline">Tambah User</Button>
 			</DialogTrigger>
-			<DialogContent className="sm:max-w-[425px]">
+			<DialogContent className="sm:max-w-106.25">
 				<form onSubmit={handleSubmit}>
 					<DialogHeader>
 						<DialogTitle>Tambah User</DialogTitle>

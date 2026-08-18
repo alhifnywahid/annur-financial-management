@@ -94,7 +94,7 @@ export default function ActionTagihan({ data }: { data: ActionTagihanData }) {
 			</DropdownMenuContent>
 
 			<Dialog open={editOpen} onOpenChange={setEditOpen}>
-				<DialogContent className="sm:max-w-[425px]">
+				<DialogContent className="sm:max-w-106.25">
 					<form onSubmit={handleEdit}>
 						<DialogHeader>
 							<DialogTitle>Edit Tagihan</DialogTitle>
@@ -129,7 +129,7 @@ export default function ActionTagihan({ data }: { data: ActionTagihanData }) {
 			</Dialog>
 
 			<Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-				<DialogContent className="sm:max-w-[425px]">
+				<DialogContent className="sm:max-w-106.25">
 					<DialogHeader>
 						<DialogTitle>Yakin ingin menghapus data berikut :</DialogTitle>
 						<div className="flex items-center justify-between w-full gap-1 py-2 *:border *:py-1 *:w-full *:text-center *:rounded">
