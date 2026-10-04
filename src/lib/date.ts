@@ -81,6 +81,11 @@ export function toDDMMYYYY(date: Date): string {
 	return `${pad2(date.getDate())}${pad2(date.getMonth() + 1)}${date.getFullYear()}`;
 }
 
+/** A `Date` -> "YYYY-MM-DD" (local, untuk `<input type="date">` dan DTO). */
+export function toDateInput(date: Date): string {
+	return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
 /** "DDMMYYYY" -> "DD/MM/YY" for table display. */
 export function formatDDMMYYYYShort(value: string): string {
 	const dd = value.slice(0, 2);

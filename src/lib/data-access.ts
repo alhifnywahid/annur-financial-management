@@ -1,4 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull, isNull, or } from "drizzle-orm";
 
 import { db } from "#/db";
 import {
@@ -17,7 +17,7 @@ import {
 	subtractMonths,
 	toMMYYYY,
 } from "./date.ts";
-import { hitungTagihanUser } from "./tagihan.ts";
+import { hitungTagihanUser, lateMonthsForInactive } from "./tagihan.ts";
 import type {
 	BulananUserDTO,
 	DataBulananDTO,
@@ -35,6 +35,25 @@ const DEFAULT_PEMBAYARAN = [
 ];
 
 /**
+ * Master list of members to seed into a new month: everyone whose
+ * `nonaktif_sejak` is NULL, or falls on/after this month's first day
+ * (an `nonaktif_sejak` inside October still belongs to October's roster —
+ * the member was present for part of it).
+ */
+async function getActiveMembers(bulan: number, tahun: number) {
+	const firstOfMonth = new Date(tahun, bulan - 1, 1, 12, 0, 0);
+	return db
+		.select()
+		.from(dataUser)
+		.where(
+			or(
+				isNull(dataUser.nonaktifSejak),
+				gte(dataUser.nonaktifSejak, firstOfMonth),
+			),
+		);
+}
+
+/**
  * Creates the DataBulanan row for the current month if it does not exist yet,
  * seeding it with the default bills and one `bulananUser` row per member.
  * Equivalent to old `getDataBulananNew()` + the "create if missing" logic.
@@ -50,7 +69,7 @@ async function ensureMonthExists(bulan: number, tahun: number): Promise<void> {
 	});
 	if (existing) return;
 
-	const members = await db.select().from(dataUser);
+	const members = await getActiveMembers(bulan, tahun);
 
 	await db.transaction(async (tx) => {
 		const [bulananRow] = await tx
@@ -137,6 +156,18 @@ async function updateDenda(): Promise<void> {
 		},
 	});
 
+	// Deactivated members: their penalty accrual is FROZEN at the month before
+	// they left (they are no longer around to be late for anything after that),
+	// while their existing arrears stay visible until paid. Keyed by name
+	// because bulanan_user references members by name.
+	const inactive: Record<string, Date> = {};
+	for (const row of await db
+		.select({ nama: dataUser.nama, nonaktifSejak: dataUser.nonaktifSejak })
+		.from(dataUser)
+		.where(isNotNull(dataUser.nonaktifSejak))) {
+		if (row.nonaktifSejak) inactive[row.nama] = row.nonaktifSejak;
+	}
+
 	/** bulananUser ids whose stored penalty set is stale. */
 	const stale: number[] = [];
 	const rows: Array<{ bulananUserId: number; bulan: number; tahun: number }> =
@@ -151,11 +182,20 @@ async function updateDenda(): Promise<void> {
 		if (difference <= 0) continue;
 
 		// [now-difference, ... now-1] in chronological order.
-		const lateMonths = Array.from({ length: difference }, (_, i) =>
+		let lateMonths = Array.from({ length: difference }, (_, i) =>
 			subtractMonths(now, difference - i),
 		);
 
 		for (const u of month.user) {
+			// Frozen accrual for deactivated members: drop every late month on or
+			// after their `nonaktif_sejak` month, so the stored set never grows
+			// past the point they left. (Rows for months after departure are
+			// removed by `deactivateMember` itself; this cutoff only stops growth.)
+			const deact = inactive[u.nama];
+			if (deact) {
+				lateMonths = lateMonthsForInactive(lateMonths, now, deact);
+			}
+
 			// `dendaCount: 0` on purpose: settlement is judged on the bill alone —
 			// see the note above on why bill+denda feeds itself.
 			const { isLunas } = hitungTagihanUser({
@@ -212,6 +252,131 @@ export async function checkNowMonth(): Promise<void> {
 	} catch (error) {
 		console.error("checkNowMonth: gagal menyiapkan bulan berjalan:", error);
 	}
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Member activation / deactivation                                           */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Marks a member as inactive from `deact` (a date whose month is the effective
+ * month, e.g. any day of October for "berhenti per Oktober").
+ *
+ * What happens to the money (nothing is ever deleted):
+ *   - Payments from the effective month onward are ZEROED (a member who left
+ *     per October cannot have paid for October onward). Historical rows before
+ *     that month are untouched, so their arrears stay visible on the Hutang
+ *     page until actually paid.
+ *   - Penalty rows dated on/after the effective month are removed; accrual for
+ *     months BEFORE it stays frozen in place (updateDenda never extends a
+ *     deactivated member's set — see its cutoff logic).
+ *   - Future months: getActiveMembers() skips them at seeding time.
+ */
+export async function deactivateMember(id: number, deact: Date): Promise<void> {
+	await db.transaction(async (tx) => {
+		const [target] = await tx
+			.select()
+			.from(dataUser)
+			.where(eq(dataUser.id, id));
+		if (!target) throw new Error("User tidak ditemukan");
+
+		await tx
+			.update(dataUser)
+			.set({ nonaktifSejak: deact })
+			.where(eq(dataUser.id, id));
+
+		const months = await tx
+			.select({
+				id: dataBulanan.id,
+				bulan: dataBulanan.bulan,
+				tahun: dataBulanan.tahun,
+			})
+			.from(dataBulanan);
+		const cutoff = {
+			bulan: deact.getMonth() + 1,
+			tahun: deact.getFullYear(),
+		};
+		const fromIds = months
+			.filter((m) => monthDiff(m, cutoff) >= 0)
+			.map((m) => m.id);
+
+		if (fromIds.length > 0) {
+			const byName = and(
+				eq(bulananUser.nama, target.nama),
+				inArray(bulananUser.dataBulananId, fromIds),
+			);
+
+			// Months from the effective month on are not this member's liability
+			// anymore. Rows that only exist as seeding artifacts (total_bayar = 0)
+			// are removed entirely so the member disappears from those months'
+			// tagihan; rows that already carry payments are ZEROED instead of
+			// deleted, because totalSaldo = SUM(total_bayar) + masuk - keluar and
+			// deleting paid rows would silently rewrite the cash balance.
+			await tx
+				.delete(bulananUser)
+				.where(and(byName, eq(bulananUser.totalBayar, 0)));
+			await tx
+				.update(bulananUser)
+				.set({ totalBayar: 0 })
+				.where(and(byName, gte(bulananUser.totalBayar, 1)));
+
+			const buRows = await tx
+				.select({ id: bulananUser.id })
+				.from(bulananUser)
+				.where(byName);
+			const ids = buRows.map((r) => r.id);
+			for (let i = 0; i < ids.length; i += 500) {
+				await tx
+					.delete(denda)
+					.where(inArray(denda.bulananUserId, ids.slice(i, i + 500)));
+			}
+		}
+	});
+}
+
+/**
+ * Clears a member's inactive flag and re-enters them into the current month's
+ * roster if that month was already seeded (otherwise ensureMonthExists picks
+ * them up on the next read). Denda accrual resumes on its own: updateDenda no
+ * longer sees them in the inactive map.
+ */
+export async function activateMember(id: number): Promise<void> {
+	const [target] = await db
+		.update(dataUser)
+		.set({ nonaktifSejak: null })
+		.where(eq(dataUser.id, id))
+		.returning();
+	if (!target) throw new Error("User tidak ditemukan");
+
+	const { bulan, tahun } = nowMonth();
+	const [month] = await db
+		.select({ id: dataBulanan.id })
+		.from(dataBulanan)
+		.where(and(eq(dataBulanan.bulan, bulan), eq(dataBulanan.tahun, tahun)));
+	if (month) {
+		await db
+			.insert(bulananUser)
+			.values({ dataBulananId: month.id, nama: target.nama, totalBayar: 0 })
+			.onConflictDoNothing();
+	}
+}
+
+/**
+ * Adds a member who was registered mid-month to the CURRENT month's roster, so
+ * "tambah anak" immediately shows up in this month's tagihan even though
+ * ensureMonthExists only seeds when the month row is first created.
+ */
+export async function seedMemberToCurrentMonth(nama: string): Promise<void> {
+	const { bulan, tahun } = nowMonth();
+	const [month] = await db
+		.select({ id: dataBulanan.id })
+		.from(dataBulanan)
+		.where(and(eq(dataBulanan.bulan, bulan), eq(dataBulanan.tahun, tahun)));
+	if (!month) return; // No month row yet: ensureMonthExists will seed it.
+	await db
+		.insert(bulananUser)
+		.values({ dataBulananId: month.id, nama, totalBayar: 0 })
+		.onConflictDoNothing();
 }
 
 /* -------------------------------------------------------------------------- */

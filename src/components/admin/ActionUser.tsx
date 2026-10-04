@@ -17,19 +17,32 @@ import {
 	DropdownMenuTrigger,
 } from "#/components/ui/dropdown-menu";
 import { Input } from "#/components/ui/input";
-import { deleteDataUser, editDataUser } from "#/lib/server-functions";
+import {
+	activateUser,
+	deactivateUser,
+	deleteDataUser,
+	editDataUser,
+} from "#/lib/server-functions";
 import { useInvalidateData } from "#/lib/useInvalidate";
 
 export interface ActionUserData {
 	id: number;
 	nama: string;
+	/** "YYYY-MM-DD" bila anggota nonaktif, null bila aktif. */
+	nonaktif_sejak: string | null;
 }
 
 export default function ActionUser({ data }: { data: ActionUserData }) {
 	const [loading, setLoading] = useState(false);
 	const [editOpen, setEditOpen] = useState(false);
 	const [deleteOpen, setDeleteOpen] = useState(false);
+	const [deactOpen, setDeactOpen] = useState(false);
+	const [actOpen, setActOpen] = useState(false);
 	const [nama, setNama] = useState(data.nama);
+	const [deactMonth, setDeactMonth] = useState(() => {
+		const d = new Date();
+		return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+	});
 	const invalidate = useInvalidateData();
 
 	const handleEdit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -59,6 +72,34 @@ export default function ActionUser({ data }: { data: ActionUserData }) {
 		}
 	};
 
+	const handleDeactivate = async () => {
+		setLoading(true);
+		try {
+			await deactivateUser({
+				data: { _id: data.id, tanggal: `${deactMonth}-01` },
+			});
+			invalidate();
+			setDeactOpen(false);
+		} catch {
+			alert("Gagal menonaktifkan user.");
+		} finally {
+			setLoading(false);
+		}
+	};
+
+	const handleActivate = async () => {
+		setLoading(true);
+		try {
+			await activateUser({ data: { _id: data.id } });
+			invalidate();
+			setActOpen(false);
+		} catch {
+			alert("Gagal mengaktifkan user.");
+		} finally {
+			setLoading(false);
+		}
+	};
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
@@ -83,6 +124,15 @@ export default function ActionUser({ data }: { data: ActionUserData }) {
 						<EditIcon />
 					</DropdownMenuShortcut>
 				</DropdownMenuItem>
+				{data.nonaktif_sejak ? (
+					<DropdownMenuItem onClick={() => setActOpen(true)}>
+						Aktifkan Kembali
+					</DropdownMenuItem>
+				) : (
+					<DropdownMenuItem onClick={() => setDeactOpen(true)}>
+						Nonaktifkan
+					</DropdownMenuItem>
+				)}
 				<DropdownMenuItem onClick={() => setDeleteOpen(true)}>
 					Hapus
 					<DropdownMenuShortcut>
@@ -141,6 +191,73 @@ export default function ActionUser({ data }: { data: ActionUserData }) {
 							className="w-full"
 						>
 							Hapus
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+			<Dialog open={deactOpen} onOpenChange={setDeactOpen}>
+				<DialogContent className="sm:max-w-106.25">
+					<DialogHeader>
+						<DialogTitle>Nonaktifkan user</DialogTitle>
+					</DialogHeader>
+					<div className="grid gap-2 py-4">
+						<div className="border py-1 w-full text-center rounded font-semibold">
+							{data.nama}
+						</div>
+						<p className="text-sm text-text-soft">
+							Anggota tidak lagi ikut tagihan bulan yang dipilih dan ke depan;
+							dendanya berhenti bertambah. Histori dan hutang tetap tersimpan
+							dan tetap tampil sampai dilunasi.
+						</p>
+						<Input
+							type="month"
+							value={deactMonth}
+							onChange={(e) => setDeactMonth(e.target.value)}
+							required
+						/>
+					</div>
+					<DialogFooter className="grid grid-cols-2 gap-2">
+						<DialogClose asChild>
+							<Button type="button" variant="outline" className="w-full">
+								Batal
+							</Button>
+						</DialogClose>
+						<Button
+							onClick={handleDeactivate}
+							disabled={loading}
+							className="w-full"
+						>
+							Nonaktifkan
+						</Button>
+					</DialogFooter>
+				</DialogContent>
+			</Dialog>
+
+			<Dialog open={actOpen} onOpenChange={setActOpen}>
+				<DialogContent className="sm:max-w-106.25">
+					<DialogHeader>
+						<DialogTitle>Aktifkan kembali user ini?</DialogTitle>
+					</DialogHeader>
+					<div className="flex items-center justify-center w-full gap-1 py-2">
+						<div className="border py-1 w-full text-center rounded font-semibold">
+							{data.nama}
+						</div>
+					</div>
+					<p className="text-sm text-text-soft -mt-2">
+						Anggota akan ikut di-tagih lagi mulai bulan berjalan.
+					</p>
+					<DialogFooter className="grid grid-cols-2 gap-2">
+						<DialogClose asChild>
+							<Button type="button" variant="outline" className="w-full">
+								Batal
+							</Button>
+						</DialogClose>
+						<Button
+							onClick={handleActivate}
+							disabled={loading}
+							className="w-full"
+						>
+							Aktifkan
 						</Button>
 					</DialogFooter>
 				</DialogContent>

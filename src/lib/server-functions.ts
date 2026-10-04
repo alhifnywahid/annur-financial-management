@@ -14,12 +14,15 @@ import {
 import { env } from "#/env";
 import { getSession, requireAdmin } from "./auth-helpers.ts";
 import {
+	activateMember,
 	checkNowMonth,
+	deactivateMember,
 	getAllDataBulananDTO,
 	getAllPemasukanDTO,
 	getAllPengeluaranDTO,
+	seedMemberToCurrentMonth,
 } from "./data-access.ts";
-import { fromMMYYYY } from "./date.ts";
+import { fromMMYYYY, toDateInput } from "./date.ts";
 import { hitungHutang } from "./hitung-hutang.ts";
 import type { DataBulananResponse, DataUserDTO } from "./types.ts";
 
@@ -99,7 +102,11 @@ export const getDataBulanan = createServerFn({ method: "GET" }).handler(
 export const getDataUser = createServerFn({ method: "GET" }).handler(
 	async (): Promise<DataUserDTO[]> => {
 		const rows = await db.select().from(dataUser);
-		return rows.map((r) => ({ _id: r.id, nama: r.nama }));
+		return rows.map((r) => ({
+			_id: r.id,
+			nama: r.nama,
+			nonaktif_sejak: r.nonaktifSejak ? toDateInput(r.nonaktifSejak) : null,
+		}));
 	},
 );
 
@@ -119,7 +126,13 @@ export const addDataUser = createServerFn({ method: "POST" })
 			.onConflictDoNothing()
 			.returning();
 		if (!row) throw new Error(`Nama "${nama}" sudah terdaftar`);
-		return { _id: row.id, nama: row.nama };
+
+		// Mid-month registration: put the new member straight into the current
+		// month's roster (ensureMonthExists only seeds when the month row is
+		// first created, which already happened for this month).
+		await seedMemberToCurrentMonth(nama);
+
+		return { _id: row.id, nama: row.nama, nonaktif_sejak: null };
 	});
 
 export const deleteDataUser = createServerFn({ method: "POST" })
@@ -135,6 +148,47 @@ export const deleteDataUser = createServerFn({ method: "POST" })
 			.returning();
 		if (deleted.length === 0) throw new Error("User tidak ditemukan");
 		return { message: "User berhasil dihapus" };
+	});
+
+/**
+ * Nonaktifkan anggota: berhenti efektif mulai bulan `tanggal`
+ * ("YYYY-MM-DD" dari <input type="date">). Pembayaran dari bulan efektif
+ * dinolkan, denda dari bulan itu dihapus, akumulasi sebelumnya dibekukan —
+ * histori dan hutang TETAP tersimpan dan tampil sampai dilunasi.
+ */
+export const deactivateUser = createServerFn({ method: "POST" })
+	.inputValidator(
+		z.object({
+			_id: z.coerce.number(),
+			tanggal: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Tanggal tidak valid"),
+		}),
+	)
+	.handler(async ({ data }) => {
+		await requireAdmin();
+		const [target] = await db
+			.select()
+			.from(dataUser)
+			.where(eq(dataUser.id, data._id));
+		if (!target) throw new Error("User tidak ditemukan");
+
+		// Local noon to avoid TZ rollovers shifting the effective month.
+		const [y, m, d] = data.tanggal.split("-").map(Number);
+		await deactivateMember(data._id, new Date(y, m - 1, d, 12, 0, 0));
+		return { message: `${target.nama} dinonaktifkan mulai ${data.tanggal}` };
+	});
+
+export const activateUser = createServerFn({ method: "POST" })
+	.inputValidator(z.object({ _id: z.coerce.number() }))
+	.handler(async ({ data }) => {
+		await requireAdmin();
+		const [target] = await db
+			.select()
+			.from(dataUser)
+			.where(eq(dataUser.id, data._id));
+		if (!target) throw new Error("User tidak ditemukan");
+
+		await activateMember(data._id);
+		return { message: `${target.nama} diaktifkan kembali` };
 	});
 
 export const editDataUser = createServerFn({ method: "POST" })

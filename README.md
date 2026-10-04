@@ -37,6 +37,10 @@ Versi ini (**v2**) adalah hasil migrasi penuh dari Next.js + MongoDB ke **TanSta
 - Kelola data pemasukan dan pengeluaran (tambah, ubah, hapus)
 - Kelola tagihan bulanan (komponen iuran wajib)
 - Kelola anggota, termasuk **tambah, ubah nama, dan hapus**
+- **Nonaktifkan anggota yang berhenti** (per bulan efektif): berhenti di-tagih
+  dan dendanya tidak bertambah lagi, tapi histori pembayaran dan hutangnya
+  tetap tersimpan dan tetap tampil di halaman Hutang sampai dilunasi; bisa
+  diaktifkan kembali kapan pun
 - Rekap dan pantau data pembayaran seluruh anggota
 - Akses admin dibatasi berdasarkan email (`ADMIN_EMAIL`) melalui Google OAuth
 
@@ -175,6 +179,16 @@ npm run verify:migration  # pastikan hasilnya cocok dengan sumber
 ```
 
 Hapus `MONGO_URI` setelah selesai. Perintah `db:generate`, `db:migrate`, dan `db:studio` juga tersedia untuk mengelola skema Drizzle.
+
+## Backup & Restore Database
+
+```bash
+npm run db:backup                          # -> backups/backup-<timestamp>.json
+npm run db:restore backups/backup-xxx.json # TIMPA SEMUA DATA dari file backup
+```
+
+Backup mencakup seluruh tabel (domain + auth). Selalu jalankan `db:backup`
+sebelum perubahan skema atau aksi data besar.
 
 ## Versi
 

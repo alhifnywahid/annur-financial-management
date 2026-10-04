@@ -43,6 +43,8 @@ export interface HutangDTO {
 export interface DataUserDTO {
 	_id: number;
 	nama: string;
+	/** "YYYY-MM-DD" bila anggota nonaktif (berhenti), null bila aktif. */
+	nonaktif_sejak: string | null;
 }
 
 export interface DataBulananResponse {

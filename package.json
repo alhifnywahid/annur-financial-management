@@ -18,6 +18,8 @@
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",
+    "db:backup": "node scripts/backup-db.mjs",
+    "db:restore": "node scripts/restore-db.mjs",
     "migrate:data": "tsx scripts/migrate-data.ts",
     "verify:migration": "tsx scripts/verify-migration.ts"
   },

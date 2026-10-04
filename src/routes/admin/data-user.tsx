@@ -27,7 +27,11 @@ function DataUserPage() {
 					>
 						{users.map((v) => (
 							<Fragment key={v._id}>
-								<Card id={v._id} name={v.nama} />
+								<Card
+									id={v._id}
+									name={v.nama}
+									nonaktifSejak={v.nonaktif_sejak}
+								/>
 							</Fragment>
 						))}
 					</Accordion>
@@ -38,11 +42,26 @@ function DataUserPage() {
 	);
 }
 
-function Card({ id, name }: { id: number; name: string }) {
+function Card({
+	id,
+	name,
+	nonaktifSejak,
+}: {
+	id: number;
+	name: string;
+	nonaktifSejak: string | null;
+}) {
 	return (
 		<div className="flex items-center justify-between rounded-xl p-4 w-full bg-card card-soft transition-all">
-			<h1 className="text-lg font-semibold">{name}</h1>
-			<ActionUser data={{ id, nama: name }} />
+			<h1 className="text-lg font-semibold flex items-center gap-2">
+				{name}
+				{nonaktifSejak && (
+					<span className="text-xs font-medium px-2 py-0.5 rounded-full bg-muted text-text-soft border">
+						Nonaktif per {nonaktifSejak.slice(0, 7)}
+					</span>
+				)}
+			</h1>
+			<ActionUser data={{ id, nama: name, nonaktif_sejak: nonaktifSejak }} />
 		</div>
 	);
 }

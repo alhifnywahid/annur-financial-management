@@ -30,6 +30,8 @@
  * memang berhutang kekurangan tagihan DITAMBAH dendanya.
  */
 
+import { monthDiff } from "./date.ts";
+
 /** Denda per bulan keterlambatan, dalam rupiah. */
 export const DENDA_PER_BULAN = 10_000;
 
@@ -43,6 +45,28 @@ export function totalTagihan(
 /** Rupiah denda untuk `count` bulan keterlambatan. */
 export function totalDenda(count: number): number {
 	return count * DENDA_PER_BULAN;
+}
+
+/**
+ * Bulan-bulan yang MASIH mengumpulkan denda untuk anggota yang berhenti per
+ * `deact`: semua bulan telat SAMPAI DAN TERMASUK bulan `deact`.
+ *
+ * Semantiknya "dibekukan di titik berhenti": akumulasi yang sudah terlanjur
+ * ada saat anggota keluar (termasuk bulan keluarnya sendiri) tetap tercatat,
+ * tapi tidak pernah bertambah lagi setelahnya — anggota yang berhenti per
+ * Oktober tidak bisa didenda untuk November dan seterusnya. Aman lintas tahun
+ * (Desember 2025 tetap terhitung untuk anggota yang berhenti Januari 2026).
+ */
+export function lateMonthsForInactive(
+	lateMonths: ReadonlyArray<{ bulan: number; tahun: number }>,
+	now: { bulan: number; tahun: number },
+	deact: Date,
+): Array<{ bulan: number; tahun: number }> {
+	const cutoffDiff = monthDiff(now, {
+		bulan: deact.getMonth() + 1,
+		tahun: deact.getFullYear(),
+	});
+	return lateMonths.filter((m) => monthDiff(now, m) >= cutoffDiff);
 }
 
 export interface TagihanUser {

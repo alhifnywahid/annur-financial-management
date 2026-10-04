@@ -24,6 +24,15 @@ import {
 export const dataUser = pgTable("data_user", {
 	id: serial("id").primaryKey(),
 	nama: text("nama").notNull().unique(),
+	/**
+	 * Tanggal anggota berhenti (keluar asrama), NULL = masih aktif.
+	 *
+	 * Anggota nonaktif TIDAK di-seed ke bulanan_user bulan-bulan baru dan
+	 * dendanya BEKU (tidak bertambah — lihat updateDenda), tapi seluruh
+	 * histori pembayaran dan hutangnya tetap tersimpan dan tetap tampil di
+	 * halaman Hutang sampai dilunasi. Tidak ada data yang dihapus.
+	 */
+	nonaktifSejak: date("nonaktif_sejak", { mode: "date" }),
 });
 
 /**

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	DENDA_PER_BULAN,
 	hitungTagihanUser,
+	lateMonthsForInactive,
 	totalDenda,
 	totalTagihan,
 } from "./tagihan.ts";
@@ -104,5 +105,73 @@ describe("hitungTagihanUser", () => {
 		const r = hitungTagihanUser({ bills: [], dendaCount: 0, totalBayar: 0 });
 		expect(r.owed).toBe(0);
 		expect(r.isLunas).toBe(true);
+	});
+});
+
+/**
+ * Aturan beku denda untuk anggota yang berhenti: akumulasi berhenti pada bulan
+ * SEBELUM bulan `nonaktif_sejak`. Anggota yang berhenti per Oktober tidak bisa
+ * "terlambat" untuk Oktober dan sesudahnya.
+ */
+describe("lateMonthsForInactive", () => {
+	const NOW = { bulan: 10, tahun: 2026 }; // Oktober 2026
+
+	it("drops late months after a long-past deactivation month", () => {
+		const late = [
+			{ bulan: 5, tahun: 2026 },
+			{ bulan: 9, tahun: 2026 },
+		];
+		// Berhenti per Januari 2025 — Mei/Sep 2026 SESUDAH tanggal berhenti,
+		// jadi tidak boleh mengumpulkan denda (akumulasi beku jadi nol).
+		expect(lateMonthsForInactive(late, NOW, new Date(2025, 0, 20))).toEqual([]);
+	});
+
+	it("keeps accrual up to and including the deactivation month", () => {
+		// Berhenti per Oktober 2026: Mei–Okt tetap tercatat (beku), November
+		// (yang belum ada saat dia keluar) tidak pernah ditambahkan.
+		const late = [
+			{ bulan: 5, tahun: 2026 },
+			{ bulan: 9, tahun: 2026 },
+			{ bulan: 10, tahun: 2026 },
+			{ bulan: 11, tahun: 2026 },
+		];
+		expect(
+			lateMonthsForInactive(late, NOW, new Date(2026, 9, 1, 12, 0, 0)),
+		).toEqual([
+			{ bulan: 5, tahun: 2026 },
+			{ bulan: 9, tahun: 2026 },
+			{ bulan: 10, tahun: 2026 },
+		]);
+	});
+
+	it("never grows past the deactivation month in later reads", () => {
+		// Baca ulang di November: set November tidak muncul lagi — beku permanen.
+		const now = { bulan: 11, tahun: 2026 };
+		const late = [
+			{ bulan: 6, tahun: 2026 },
+			{ bulan: 9, tahun: 2026 },
+			{ bulan: 10, tahun: 2026 },
+			{ bulan: 11, tahun: 2026 },
+		];
+		expect(lateMonthsForInactive(late, now, new Date(2026, 9, 20))).toEqual([
+			{ bulan: 6, tahun: 2026 },
+			{ bulan: 9, tahun: 2026 },
+			{ bulan: 10, tahun: 2026 },
+		]);
+	});
+
+	it("crosses the year boundary correctly", () => {
+		// Berhenti per Januari 2026: akumulasi s.d. Januari (termasuk) tetap,
+		// Februari dan sesudahnya tidak.
+		const late = [
+			{ bulan: 12, tahun: 2025 },
+			{ bulan: 1, tahun: 2026 },
+			{ bulan: 2, tahun: 2026 },
+		];
+		const now = { bulan: 2, tahun: 2026 };
+		expect(lateMonthsForInactive(late, now, new Date(2026, 0, 15))).toEqual([
+			{ bulan: 12, tahun: 2025 },
+			{ bulan: 1, tahun: 2026 },
+		]);
 	});
 });
